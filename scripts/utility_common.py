@@ -43,11 +43,11 @@ def GetSelectionCut(slt):
             "mumu"  : " (lepton1_pt > 25) & (lepton1_reliso < 0.15) & (lepton2_pt > 10) & (lepton1_reliso < 0.15) " + lmveto + ssveto + zveto,
             "mutau" : " (lepton1_pt > 25) & (lepton1_reliso < 0.15) " + lmveto +  ssveto,
             "mu4j"  : " (lepton1_pt > 25) & (lepton1_reliso < 0.15) ",
-            "emu"   : " (lepton1_pt > 25) & (lepton2_pt < 30) " + lmveto +  ssveto, #(lepton2_pt > 15) " + lmveto +  ssveto,
+            "emu"   : " (lepton1_pt > 25) & (lepton2_pt < 30) " + lmveto +  ssveto, #(lepton2_pt > 15) " + lmveto +  ssveto, 
             "emu2"  : " (lepton2_pt > 30) " + lmveto +  ssveto, #(lepton1_pt < 24) &
             "ee"    : " (lepton1_pt > 30) " + lmveto + ssveto + zveto,
             "etau"  : " (lepton1_pt > 30) " + lmveto + ssveto,
-            "e4j"   : "(lepton1_pt > 25) " 
+            "e4j"   : "(lepton1_pt > 30) " 
             }
     return sltcut[slt]
 

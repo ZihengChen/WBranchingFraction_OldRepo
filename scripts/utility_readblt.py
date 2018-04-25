@@ -281,7 +281,7 @@ mcdylist      = ['z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m
                  'w1jets','w2jets','w3jets','w4jets']
 mctlist       = ['t_tw','tbar_tw']
 mcttlist      = ['ttbar_inclusive']
-dataset_list  = datalist #+ mcdibosonlist + mcdylist + mctlist + mcttlist
+dataset_list  = datalist + mcdibosonlist + mcdylist + mctlist + mcttlist
 
 SF_table ={ 'ww_2l2nu'        :  0.219,
             'wz_2l2q'         :  0.008,
