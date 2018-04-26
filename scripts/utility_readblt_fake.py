@@ -142,8 +142,9 @@ mcdylist      = ['zjets_m-50', #'z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10
 mctlist       = ['t_tw','tbar_tw','w1jets','w2jets','w3jets','w4jets']
 mcttlist      = ['ttbar_inclusive']
 
+mcttzlist = ["2016"]
 
-dataset_list  = datalist + mcdibosonlist + mcdylist + mctlist + mcttlist
+dataset_list  = mcttzlist#datalist + mcdibosonlist + mcdylist + mctlist + mcttlist
 
 SF_table ={ 'ww'        :  0.219,
             'wz_2l2q'         :  0.008,
@@ -169,7 +170,7 @@ SF_table ={ 'ww'        :  0.219,
            'w2jets'           :  3.734,
            'w3jets'           :  1.709,
            'w4jets'           :  2.068,
-           
+
            't_tw'             :  1.29739,
            'tbar_tw'          :  1.30265,
            'ttbar_inclusive'  :  0.19244,
