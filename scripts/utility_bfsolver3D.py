@@ -436,17 +436,18 @@ class BFCalc3D_Toolbox:
         dfacc = []
         for selection in selections:
             filename = dir+'Acceptance - {}.csv'.format(selection)
-            df = pd.read_csv(filename,index_col=0)
-            df = df.loc[df.index == 'fraction accepted']
-            acc = np.array(df).astype(np.float)
+            #df = pd.read_csv(filename,index_col=0)
+            #df = df.loc[df.index == 'fraction accepted']
+            #acc = np.array(df).astype(np.float)
+            acc = np.genfromtxt(filename,delimiter=',')
 
             for i,tag in enumerate(tags):
                 if i < 4:
-                    temp = acc[i,0:-1]
+                    temp = acc[i,:]
                 elif tag is '1b':
-                    temp = (acc[0,0:-1]*ttxs + acc[2,0:-1]*twxs)/(ttxs+twxs)
+                    temp = (acc[0,:]*ttxs + acc[2,:]*twxs)/(ttxs+twxs)
                 elif tag is '2b':
-                    temp = (acc[1,0:-1]*ttxs + acc[3,0:-1]*twxs)/(ttxs+twxs)
+                    temp = (acc[1,:]*ttxs + acc[3,:]*twxs)/(ttxs+twxs)
                 
                 dfacc.append((selection,tag,temp[accmatidx]))
 

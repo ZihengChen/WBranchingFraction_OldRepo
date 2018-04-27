@@ -243,7 +243,7 @@ class BFCalc_Toolbox:
 
     def IO_LoadAccTableIntoDf(self):
         dir = "../data/acceptance/"
-        ttxs,twxs = 832,35.6
+        ttxs,twxs = 832,35.85*2
         # reshape 21 acc into a matrix
         accmatidx = np.array([[ 0, 2, 9,10,11,15],
                               [ 2, 1,12,13,14,16],
@@ -252,23 +252,24 @@ class BFCalc_Toolbox:
                               [11,14, 6, 7, 8,19],
                               [15,16,17,18,19,20]])
 
-        selections = ['mumu','mutau','emu','mu4j','ee','etau','e4j']
+        selections = ['mumu','mutau','emu','emu2','mu4j','ee','etau','e4j']
         tags       = ['tt_1b','tt_2b','tw_1b','tw_2b','1b','2b']
 
         dfacc = []
         for selection in selections:
             filename = dir+'Acceptance - {}.csv'.format(selection)
-            df = pd.read_csv(filename,index_col=0)
-            df = df.loc[df.index == 'fraction accepted']
-            acc = np.array(df).astype(np.float)
+            #df = pd.read_csv(filename,index_col=0)
+            #df = df.loc[df.index == 'fraction accepted']
+            #acc = np.array(df).astype(np.float)
+            acc = np.genfromtxt(filename,delimiter=',')
 
             for i,tag in enumerate(tags):
                 if i < 4:
-                    temp = acc[i,0:-1]
+                    temp = acc[i,:]
                 elif tag is '1b':
-                    temp = (acc[0,0:-1]*ttxs + acc[2,0:-1]*twxs)/(ttxs+twxs)
+                    temp = (acc[0,:]*ttxs + acc[2,:]*twxs)/(ttxs+twxs)
                 elif tag is '2b':
-                    temp = (acc[1,0:-1]*ttxs + acc[3,0:-1]*twxs)/(ttxs+twxs)
+                    temp = (acc[1,:]*ttxs + acc[3,:]*twxs)/(ttxs+twxs)
                 
                 dfacc.append((selection,tag,temp[accmatidx]))
 

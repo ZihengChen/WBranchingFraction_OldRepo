@@ -14,6 +14,45 @@ from tqdm import tqdm, trange
 from collections import defaultdict
 
 selection = sys.argv[1]
+lumin = 35.864
+XS_table ={ 'ww'              :  12178,
+            'wz_2l2q'         :  5595,
+            'wz_3lnu'         :  4430,
+            'zz_2l2nu'        :  564,
+            'zz_2l2q'         :  3220,
+            'zz_4l'           :  1210,
+           
+           'zjets_m-10to50'   : 18610000,
+           'z1jets_m-10to50'  : 1.18*730300,
+           'z2jets_m-10to50'  : 1.18*387400,
+           'z3jets_m-10to50'  : 1.18*95020,
+           'z4jets_m-10to50'  : 1.18*36710,
+
+           'zjets_m-50'       :  5765400,
+           'z1jets_m-50'      :  1.18*1012000,
+           'z2jets_m-50'      :  1.18*334700,
+           'z3jets_m-50'      :  1.18*102300,
+           'z4jets_m-50'      :  1.18*54520,
+
+           'w1jets'           :  9493000,
+           'w2jets'           :  3120000,
+           'w3jets'           :  942300,
+           'w4jets'           :  524100,
+           
+           't_tw'             :  35850,
+           'tbar_tw'          :  35850,
+           'ttbar_inclusive'  :  832000,
+
+           'qcd_ht100to200'   :27990000000,
+           'qcd_ht200to300'   :1712000000,
+           'qcd_ht300to500'   :347700000,
+           'qcd_ht500to700'   :32100000,
+           'qcd_ht700to1000'  :6831000,
+           'qcd_ht1000to1500' :1207000,
+           'qcd_ht1500to2000' :119900,
+           'qcd_ht2000'       :25240,
+          }
+          
 
 
 def make_directory(filePath, clear=True):
@@ -195,9 +234,6 @@ def fill_lepton_vars(tree, name, SF):
         out_dict['dijet_eta']       = dijet.Eta()
         out_dict['dijet_phi']       = dijet.Phi()
         out_dict['dijet_pt_over_m'] = dijet.Pt()/dijet.M()
-
-    
-    
     return out_dict
 
 
@@ -237,8 +273,8 @@ def pickle_ntuple(ntuple_data):
     make_directory(output_path, clear=False)
     
     # get the tree, convert to dataframe, and save df to pickle
-    froot  = TFile(input_file)
-    tree   = froot.Get('{}/bltTree_{}'.format(selection,name))
+    #froot  = TFile(input_file)
+    tree   = input_file.Get('{}/bltTree_{}'.format(selection,name))
 
     if tree.GetEntriesFast() >0:
 
@@ -251,9 +287,11 @@ def pickle_ntuple(ntuple_data):
     
 ###########################################    
 # My Main function
-input_root_file  = "/home/zchen/Documents/Analysis/workplace/data/root/2016MC.root"
+input_root_file_name  = "/home/zchen/Documents/Analysis/workplace/data/root/2016MC.root"
+input_root_file = TFile(input_root_file_name)
 output_directory = "/home/zchen/Documents/Analysis/workplace/data/pickle/{}/".format(selection)
 
+## 1. define the datalist
 if selection in ["mumu","mutau","mu4j"]:
     datalist  = ['muon_2016B', 'muon_2016C', 
                 'muon_2016D','muon_2016E','muon_2016F','muon_2016G','muon_2016H']
@@ -272,64 +310,32 @@ else:
     print( "data2016 for this selection is not defined")
     datalist  = []
     
+## 2. define the MC list
+mcqcdlist = ['qcd_ht100to200','qcd_ht200to300','qcd_ht300to500','qcd_ht500to700',
+             'qcd_ht700to1000','qcd_ht1000to1500','qcd_ht1500to2000','qcd_ht2000']
 mcdibosonlist = ['ww','wz_2l2q','wz_3lnu','zz_2l2nu','zz_2l2q','zz_4l' ]
-
 mcdylist      = ['z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m-10to50','zjets_m-10to50',
-
                  'z1jets_m-50','z2jets_m-50','z3jets_m-50','z4jets_m-50','zjets_m-50',
-
                  'w1jets','w2jets','w3jets','w4jets']
 mctlist       = ['t_tw','tbar_tw']
 mcttlist      = ['ttbar_inclusive']
-dataset_list  = datalist + mcdibosonlist + mcdylist + mctlist + mcttlist
+mclist =  mcdibosonlist + mcdylist + mctlist + mcttlist
 
-SF_table ={ 'ww_2l2nu'        :  0.219,
-            'wz_2l2q'         :  0.008,
-            'wz_3lnu'         :  0.080,
-            'zz_2l2nu'        :  0.002,
-            'zz_2l2q'         :  0.008,
-            'zz_4l'           :  0.004,
-           
-
-           'zjets_m-10to50'   : 18.935,
-           'z1jets_m-10to50'  : 0.778,
-           'z2jets_m-10to50'  : 0.846,
-           'z3jets_m-10to50'  : 0.813,
-           'z4jets_m-10to50'  : 0.871,
-
-           'zjets_m-50'       :  4.227,
-           'z1jets_m-50'      :  0.689,
-           'z2jets_m-50'      :  0.709,
-           'z3jets_m-50'      :  0.741,
-           'z4jets_m-50'      :  0.550,
-
-           'w1jets'           : 17.476,
-           'w2jets'           :  3.734,
-           'w3jets'           :  1.709,
-           'w4jets'           :  2.068,
-           
-           't_tw'             :  1.29739,
-           'tbar_tw'          :  1.30265,
-           'ttbar_inclusive'  :  0.19244,
-
-           'qcd_ht100to200'   :12436.1,
-           'qcd_ht200to300'   :1138.16,
-           'qcd_ht300to500'   :277.387,
-           'qcd_ht500to700'   : 21.341,
-           'qcd_ht700to1000'  :  5.703,
-           'qcd_ht1000to1500' :  3.333,
-           'qcd_ht1500to2000' :  0.371,
-           'qcd_ht2000'       :  0.154,
-
-          }
+## 3. Calculate SF for each element in datalist and mclist
+SF_table = {}
 SF_table = defaultdict(lambda: 1.0, SF_table)
+for mc in mclist:
+    h = input_root_file.Get("TotalEvents_"+mc)
+    nGenTotal = h.GetBinContent(1)
+    crossection = XS_table[mc]
+    SF_table[mc] = crossection*lumin/nGenTotal
+for data in datalist:
+    SF_table[data] = 1.0
 
+## 4. pickle ntuples
+dataset_list = datalist + mclist
 for dataset in dataset_list:
     SF = SF_table[dataset]
-    if not dataset in datalist:
-        SF = SF * (35.864/35.9)
-    if ('tau' in selection) & (dataset not in datalist):
-        SF = 1.0 * SF 
     root2df_config = [dataset,SF,input_root_file,output_directory]
     pickle_ntuple(root2df_config)
 
