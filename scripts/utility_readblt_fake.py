@@ -42,6 +42,12 @@ XS_table ={ 'ww'              :  12178,
            't_tw'             :  35850,
            'tbar_tw'          :  35850,
            'ttbar_inclusive'  :  832000,
+           
+           'TTZToLLNuNu'      : 252.9,
+           'TTZToQQ'          : 529.7,
+           'TTWJetsToLNu'     : 204.3,
+           'TTWJetsToQQ'      : 406.2,
+           'ttHJetTobb'       : 295.0,
 
            'qcd_ht100to200'   :27990000000,
            'qcd_ht200to300'   :1712000000,
@@ -78,10 +84,6 @@ def fill_lepton_vars(tree, name, SF):
     correction *= tree.eventWeightIso
     
     weight = SF * correction
-    if name in ['zjets_m-50','zjets_m-10to50']:
-        out_dict['nPartons']  =  tree.nPartons
-    #     if 0 < tree.nPartons < 5:
-    #         weight  = 0.0
     out_dict['eventWeight']  =  weight
     out_dict['met']          =  tree.met
     out_dict['metPhi']       =  tree.metPhi
@@ -109,6 +111,12 @@ def fill_lepton_vars(tree, name, SF):
     out_dict['lepton3_pt']      = lep3.Pt()
     out_dict['lepton3_eta']     = lep3.Eta()
     out_dict['lepton3_phi']     = lep3.Phi()
+
+    trilepton = lep1+lep2+lep3
+    out_dict['trilepton_pt']      = trilepton.Pt()
+    out_dict['trilepton_eta']     = trilepton.Pt()
+    out_dict['trilepton_phi']     = trilepton.Pt()
+    out_dict['trilepton_mass']    = trilepton.M()
     
     return out_dict
 
@@ -126,6 +134,10 @@ def fill_ntuple(tree, name, SF):
                     ):
         tree.GetEntry(i)
         entry = {}
+        if (name in ['zjets_m-50','zjets_m-10to50']) & (0 < tree.nPartons < 5):
+            n -= 1
+            continue
+
         entry.update(fill_lepton_vars(tree, name, SF))
         n -= 1
         yield entry
@@ -138,10 +150,14 @@ def pickle_ntuple(ntuple_data):
     output_path = ntuple_data[3]
     if name in datalist:
         output_path +="data2016/"
+    elif name in mcttbosonlist:
+        output_path +="mcttboson/"
     elif name in mcqcdlist:
         output_path +="mcqcd/"
     elif name in mcdibosonlist:
         output_path +="mcdiboson/"
+    elif name in mcwz3lnulist:
+        output_path +="mcwz3lnu/"
     elif name in mcdylist:
         output_path +="mcdy/"
     elif name in mctlist:
@@ -173,20 +189,32 @@ input_root_file = TFile(input_root_file_name)
 output_directory = "/home/zchen/Documents/Analysis/workplace/data/fake/{}/".format(selection)
 
 ## 1. define datalist
-datalist      = ['muon_2016B', 'muon_2016C', 'muon_2016D','muon_2016E',
-                 'muon_2016F','muon_2016G','muon_2016H']
+if selection in ["fake3mu"]:
+    datalist  = ['muon_2016B', 'muon_2016C', 
+                'muon_2016D','muon_2016E','muon_2016F','muon_2016G','muon_2016H']
+
+elif selection in ["fakeeemu"]:
+    datalist  = ['electron_2016B', 'electron_2016C', 'electron_2016D','electron_2016E',
+                 'electron_2016F','electron_2016G','electron_2016H']
+
 ## 2. define mclist
+mcttbosonlist = ['TTZToLLNuNu','TTZToQQ','TTWJetsToLNu','TTWJetsToQQ','ttHJetTobb']
+
 mcqcdlist     = ['qcd_ht100to200','qcd_ht200to300','qcd_ht300to500',
                  'qcd_ht500to700','qcd_ht700to1000','qcd_ht1000to1500',
                  'qcd_ht1000to1500','qcd_ht1500to2000','qcd_ht2000']
-mcdibosonlist = ['ww','wz_2l2q','wz_3lnu','zz_2l2nu','zz_2l2q','zz_4l' ]
+
+mcdibosonlist = ['ww','wz_2l2q','zz_2l2nu','zz_2l2q' ]
+mcwz3lnulist = ['wz_3lnu','zz_4l']
+
 mcdylist      = ['zjets_m-10to50','zjets_m-50', 
-                 #'z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m-10to50',
-                 #'z1jets_m-50','z2jets_m-50','z3jets_m-50','z4jets_m-50',
+                 'z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m-10to50',
+                 'z1jets_m-50','z2jets_m-50','z3jets_m-50','z4jets_m-50',
                  'w1jets','w2jets','w3jets','w4jets']
+
 mctlist       = ['t_tw','tbar_tw']
 mcttlist      = ['ttbar_inclusive']
-mclist =  mcdibosonlist + mcdylist + mctlist + mcttlist
+mclist =  mcwz3lnulist+mcttbosonlist + mcdibosonlist + mcdylist + mctlist + mcttlist
 
 ## 3. Calculate SF for each element in datalist and mclist
 SF_table = {}
@@ -205,3 +233,81 @@ for dataset in dataset_list:
     SF = SF_table[dataset]
     root2df_config = [dataset,SF,input_root_file,output_directory]
     pickle_ntuple(root2df_config)
+
+
+
+# #!/usr/bin/env python
+
+# '''
+# For this to work you will need to have established an ssh key pair between
+# lxplus and nut3.  To do this, follow these instructions,
+
+# https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server
+
+# N.B. I needed to copy the public key manually from nut3 to lxplus.  Once
+# complete you will need to override being prompted for your .ssh/id_rsa
+# passphrase.  I was able to do this by doing the following,
+
+# > exec ssh-agent csh
+# > ssh-add
+
+# This will need to be done at the beginning of every ssh session.
+# '''
+
+# import os, sys
+
+# if __name__ == '__main__':
+
+#     user    = 'naodell'
+#     topdir  = '/eos/cms/store/cmst3/group/monojet/production/10'
+#     destdir = '/tthome/share/bacon/production/10'
+#     dirlist = [
+#                # ttbar
+#                #'TTJets_13TeV_amcatnloFXFX_pythia8',
+
+#                # z+jets
+#                #'DYJetsToLL_M_50_13TeV_amcatnloFXFX_pythia8',
+
+#                # diboson (N.B. THESE ARE EMPTY)
+#                #'ZZ_13TeV_pythia8', 
+#                #'WW_13TeV_pythia8', 
+#                #'WZ_13TeV_pythia8',
+
+#                # single top
+#                'ST_tW_antitop_5f_inclusiveDecays_13TeV_powheg_pythia8_TuneCUETP8M1',
+#                'ST_tW_top_5f_inclusiveDecays_13TeV_powheg_pythia8_TuneCUETP8M1',
+#                'ST_t_channel_antitop_4f_inclusiveDecays_13TeV_powhegV2_madspin_pythia8_TuneCUETP8M1',
+#                'ST_t_channel_top_4f_inclusiveDecays_13TeV_powhegV2_madspin_pythia8_TuneCUETP8M1',
+
+#                # single electron data
+#                #'SingleElectronRun2016B_PromptReco_v2',
+#                #'SingleElectronRun2016C_PromptReco_v2',
+#                #'SingleElectronRun2016D_PromptReco_v2',
+#                #'SingleElectronRun2016E_PromptReco_v2',
+#                #'SingleElectronRun2016F_PromptReco_v1',
+#                #'SingleElectronRun2016G_PromptReco_v1',
+
+#                # single muon data
+#                #'SingleMuonRun2016B_PromptReco_v2',
+#                #'SingleMuonRun2016C_PromptReco_v2',
+#                #'SingleMuonRun2016D_PromptReco_v2',
+#                #'SingleMuonRun2016E_PromptReco_v2',
+#                #'SingleMuonRun2016F_PromptReco_v1',
+#                #'SingleMuonRun2016G_PromptReco_v1',
+
+#               ]
+
+#     for d in dirlist:
+#         os.system('eos ls {0}/{1} > /tmp/{2}/tmp.list'.format(topdir, d, user))
+#         file_list = [f.rstrip() for f in file('/tmp/{0}/tmp.list'.format(user)) if '.root' in f]
+#         os.system('rm /tmp/{0}/tmp.list'.format(user))
+#         os.system("ssh {0}@ttgrid01.ci.northwestern.edu 'mkdir {1}/{2}'".format(user, destdir, d))
+#         for infile in file_list:
+#             cmd = 'xrdcp root://eoscms.cern.ch/{0}/{1}/{2} /tmp/{3}/.'.format(topdir, d, infile, user)
+#             os.system(cmd)
+
+#             cmd = 'scp /tmp/{0}/{1} {0}@ttgrid01.ci.northwestern.edu:{2}/{3}/.'.format(user, infile, destdir, d)
+#             os.system(cmd)
+
+#             cmd = 'rm /tmp/{0}/{1}'.format(user, infile)
+#             os.system(cmd)                                                                

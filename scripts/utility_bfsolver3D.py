@@ -60,7 +60,7 @@ class BFCalc3D_SingleSelectorYield_N:
 
     def ExpYield_SmearOfSubN(self):
         temp  = self.ExpYield()
-        smearWidth = self.bkg_unc
+        smearWidth = self.bkg_unc + self.expyield**0.5
         temp += np.random.normal(0, smearWidth)
         #temp += np.random.normal(0, self.expyield_unc)
         return temp

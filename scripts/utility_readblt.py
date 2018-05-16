@@ -15,12 +15,12 @@ from collections import defaultdict
 
 selection = sys.argv[1]
 lumin = 35.864
-XS_table ={ 'ww'              :  12178,
-            'wz_2l2q'         :  5595,
-            'wz_3lnu'         :  4430,
-            'zz_2l2nu'        :  564,
-            'zz_2l2q'         :  3220,
-            'zz_4l'           :  1210,
+XS_table ={ 'ww'              : 12178,
+            'wz_2l2q'         : 5595,
+            'wz_3lnu'         : 4430,
+            'zz_2l2nu'        : 564,
+            'zz_2l2q'         : 3220,
+            'zz_4l'           : 1210,
            
            'zjets_m-10to50'   : 18610000,
            'z1jets_m-10to50'  : 1.18*730300,
@@ -43,14 +43,14 @@ XS_table ={ 'ww'              :  12178,
            'tbar_tw'          :  35850,
            'ttbar_inclusive'  :  832000,
 
-           'qcd_ht100to200'   :27990000000,
-           'qcd_ht200to300'   :1712000000,
-           'qcd_ht300to500'   :347700000,
-           'qcd_ht500to700'   :32100000,
-           'qcd_ht700to1000'  :6831000,
-           'qcd_ht1000to1500' :1207000,
-           'qcd_ht1500to2000' :119900,
-           'qcd_ht2000'       :25240,
+           'qcd_ht100to200'   : 27990000000,
+           'qcd_ht200to300'   : 1712000000,
+           'qcd_ht300to500'   : 347700000,
+           'qcd_ht500to700'   : 32100000,
+           'qcd_ht700to1000'  : 6831000,
+           'qcd_ht1000to1500' : 1207000,
+           'qcd_ht1500to2000' : 119900,
+           'qcd_ht2000'       : 25240,
           }
           
 
@@ -77,11 +77,12 @@ def fill_lepton_vars(tree, name, SF):
     out_dict['nJets']        =  tree.nJets
     out_dict['nBJets']       =  tree.nBJets
     out_dict['nPV']          =  tree.nPV
+    out_dict['triggerLetpon'] = tree.triggerLetponStatus
 
     weight = SF * tree.eventWeight
-    if name in ['zjets_m-50','zjets_m-10to50']:
-        if 0< tree.nPartons < 5:
-            weight  = 0
+   #if name in ['zjets_m-50','zjets_m-10to50']:
+   #     if 0< tree.nPartons < 5:
+   #        weight  = 0
     out_dict['eventWeight']  =  weight
     out_dict['eventWeightSF']=  SF
 
@@ -159,23 +160,19 @@ def fill_lepton_vars(tree, name, SF):
         # 2. Filling Jets
         out_dict['jet1_pt']      = jet1.Pt()
         out_dict['jet1_eta']     = jet1.Eta()
-        #out_dict['jet1_phi']     = jet1.Phi()
-        #out_dict['jet1_energy']  = jet1.Energy()
+        
         
         out_dict['jet2_pt']      = jet2.Pt()
         out_dict['jet2_eta']     = jet2.Eta()
-        #out_dict['jet2_phi']     = jet2.Phi()
-        #out_dict['jet2_energy']  = jet2.Energy()
+
         
         out_dict['jet3_pt']      = jet3.Pt()
         out_dict['jet3_eta']     = jet3.Eta()
-        #out_dict['jet3_phi']     = jet3.Phi()
-        #out_dict['jet3_energy']  = jet3.Energy()
+
         
         out_dict['jet4_pt']      = jet4.Pt()
         out_dict['jet4_eta']     = jet4.Eta()
-        #out_dict['jet4_phi']     = jet4.Phi()
-        #out_dict['jet4_energy']  = jet4.Energy()
+
 
     else:
         # lepton2
@@ -200,7 +197,7 @@ def fill_lepton_vars(tree, name, SF):
         out_dict['lepton_delta_r']  = lep1.DeltaR(lep2)
         
         # dilepton
-        dilepton   = lep1 + lep2
+        dilepton = lep1 + lep2
 
         out_dict['dilepton_mass']      = dilepton.M()
         out_dict['dilepton_pt']        = dilepton.Pt()
@@ -250,6 +247,9 @@ def fill_ntuple(tree, name, SF):
                     ):
         tree.GetEntry(i)
         entry = {}
+        if (name in ['zjets_m-50','zjets_m-10to50']) & (0 < tree.nPartons < 5):
+            n -= 1
+            continue
         entry.update(fill_lepton_vars(tree, name, SF))
         n -= 1
         yield entry
@@ -261,7 +261,7 @@ def pickle_ntuple(ntuple_data):
     input_file  = ntuple_data[2]
     output_path = ntuple_data[3]
     if name in datalist:
-        output_path +="data2016/"
+        output_path +="data2016/" # "data2016_inverseISO/"#
     elif name in mcdibosonlist:
         output_path +="mcdiboson/"
     elif name in mcdylist:
@@ -287,7 +287,7 @@ def pickle_ntuple(ntuple_data):
     
 ###########################################    
 # My Main function
-input_root_file_name  = "/home/zchen/Documents/Analysis/workplace/data/root/2016MC.root"
+input_root_file_name  = "/home/zchen/Documents/Analysis/workplace/data/root/2016MC.root" #
 input_root_file = TFile(input_root_file_name)
 output_directory = "/home/zchen/Documents/Analysis/workplace/data/pickle/{}/".format(selection)
 
@@ -314,8 +314,9 @@ else:
 mcqcdlist = ['qcd_ht100to200','qcd_ht200to300','qcd_ht300to500','qcd_ht500to700',
              'qcd_ht700to1000','qcd_ht1000to1500','qcd_ht1500to2000','qcd_ht2000']
 mcdibosonlist = ['ww','wz_2l2q','wz_3lnu','zz_2l2nu','zz_2l2q','zz_4l' ]
-mcdylist      = ['z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m-10to50','zjets_m-10to50',
-                 'z1jets_m-50','z2jets_m-50','z3jets_m-50','z4jets_m-50','zjets_m-50',
+mcdylist      = ['zjets_m-10to50','zjets_m-50',
+                 'z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m-10to50',
+                 'z1jets_m-50','z2jets_m-50','z3jets_m-50','z4jets_m-50',
                  'w1jets','w2jets','w3jets','w4jets']
 mctlist       = ['t_tw','tbar_tw']
 mcttlist      = ['ttbar_inclusive']

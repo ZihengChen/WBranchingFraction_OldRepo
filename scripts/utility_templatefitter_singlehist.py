@@ -183,7 +183,7 @@ class TemplateFitter_Hist:
                     color   = self.color_list[0:-1],
                     bins    = self.mybin,
                     linestyle='-',
-                    lw=2, alpha=1, 
+                    lw=3, alpha=1, 
                     histtype="step",
                      stacked=self.isstacked
                     )
@@ -229,7 +229,7 @@ class TemplateFitter_Hist:
         ############################ 3. End and Save ############################### 
         ax.set_xlabel(self.xl,fontsize=13)
         if plotoutdir is not None:
-            fig.savefig(plotoutdir+"{}_fit.png".format(v))
+            fig.savefig(plotoutdir+"{}_fit.png".format(self.xl))
             
         
     def ConvertZeroInto(self,arr,into=1):

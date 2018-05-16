@@ -2,7 +2,7 @@ from utility_common import *
 from pylab import *
 
 class SelectionPlotter:
-    def __init__(self,v,a,b,step,df_list, adjust=None):
+    def __init__(self,v,a,b,step,df_list, adjust=None, hasFake=False):
         self.v = v
         self.a = a
         self.b = b
@@ -16,13 +16,13 @@ class SelectionPlotter:
             self.adjust = np.ones(self.n)
         else:
             self.adjust = adjust
+        
+        self.hasFake = hasFake
 
-        self.variable_list  = [mc[v] for mc in df_list[0:-1]]
-        self.weight_list    = [mc.eventWeight * self.adjust[i] for i,mc in enumerate(df_list[0:-1])]
-        self.Datav  = df_list[-1][v]
-        self.Dataw  = df_list[-1].eventWeight
-
-
+        self.variable_list  = [mc[v].values for mc in df_list[0:-1]]
+        self.weight_list    = [mc['eventWeight'].values * self.adjust[i] for i,mc in enumerate(df_list[0:-1])]
+        self.Datav  = df_list[-1][v].values 
+        self.Dataw  = df_list[-1]['eventWeight'].values
 
     
     def settingPlot(self,
@@ -31,7 +31,8 @@ class SelectionPlotter:
                     color_list,
                     logscale   = False,
                     isstacked  = True,
-                    figuresize = (6,5.4)
+                    figuresize = (6,5.4),
+                    plotWithoutXsErr = False
                     ):
         self.xl = xl
         self.label_list = label_list
@@ -39,6 +40,7 @@ class SelectionPlotter:
         self.logscale   = logscale
         self.isstacked  = isstacked
         self.figuresize = figuresize
+        self.plotWithoutXsErr = plotWithoutXsErr
     
     def getHistogramError(self):
         variable = np.concatenate(self.variable_list)
@@ -46,6 +48,29 @@ class SelectionPlotter:
         err,_    = np.histogram(variable, self.mybin, weights=weight**2)
         err      = err**0.5
         return err
+    
+    def getHistogramErrorDueToBgCrossSection(self):
+        if self.hasFake:
+            variable = np.concatenate(self.variable_list[1:3])
+            weight   = np.concatenate(self.weight_list[1:3])
+            yieldBg,_    = np.histogram(variable, self.mybin, weights=weight)
+            errBg = 0.05 * yieldBg
+
+            variable = self.variable_list[0]
+            weight   = self.weight_list[0]
+            yieldFake,_    = np.histogram(variable, self.mybin, weights=weight)
+            errFake = 0.011/0.070 * yieldFake
+
+            err = ( errBg**2 + errFake**2)**0.5
+            return err
+        else:
+            variable = np.concatenate(self.variable_list[0:2])
+            weight   = np.concatenate(self.weight_list[0:2])
+            yieldBg,_    = np.histogram(variable, self.mybin, weights=weight)
+            err = 0.05 * yieldBg
+            return err
+        
+
 
     def convertZeroInto(self,arr,into=1):
         for i in range(arr.size):
@@ -54,7 +79,7 @@ class SelectionPlotter:
         return arr
 
     def makePlot(self, plotoutdir=None):
-
+        plt.rc("figure",facecolor="w")
         fig, axes = plt.subplots(2, 1, sharex=True, 
                                  gridspec_kw={'height_ratios':[3,1]},
                                  figsize=self.figuresize)
@@ -74,11 +99,15 @@ class SelectionPlotter:
                     )
         mc    = mc[0] # keep only the stacked histogram, ignore the bin edges
         self.mctot = self.convertZeroInto(mc[-1],into=1)
-        self.mcerr = self.getHistogramError()
+        if self.plotWithoutXsErr:
+            self.mcerr = self.getHistogramError()
+        else:
+            self.mcerr = (self.getHistogramError()**2 + self.getHistogramErrorDueToBgCrossSection()**2)**0.5
+
         ax.errorbar(self.center, self.mctot, yerr=self.mcerr,
                     color="k", fmt='none', 
                     lw=200/self.mybin.size, 
-                    mew=0, alpha=0.2
+                    mew=0, alpha=0.3
                     )
 
         # 1,2. show data
@@ -116,7 +145,7 @@ class SelectionPlotter:
         ax.axhline(1,lw=1,color='k')
 
         ax.errorbar(self.center, np.ones_like(self.mctot), yerr=self.mcerr/self.mctot,
-                    color="k", fmt='none', lw=200/self.mybin.size, mew=0, alpha=0.2)
+                    color="k", fmt='none', lw=200/self.mybin.size, mew=0, alpha=0.3)
 
         ax.errorbar(self.center, self.hdata/self.mctot, yerr=self.hdata**0.5/self.mctot,
                     color=self.color_list[-1],
