@@ -3,6 +3,7 @@ import pandas as pd
 from scipy import optimize
 from utility_plotter import *
 from scipy.optimize import root
+import sympy as sym
 
 class BFCalc3D_SingleSelectorYield_N:
     def __init__(self,a,xs,lumin, Bt_e=0.1785, Bt_m=0.1736, expyield=None, bkg=0, bkg_unc=0 ):
@@ -22,31 +23,35 @@ class BFCalc3D_SingleSelectorYield_N:
         
         self.bkg = bkg
         self.bkg_unc = bkg_unc
+        
+        self.quadCoeff = self.QuadCoeff()
 
 
     
-    def BMatrix(self, BW_e=0.1071, BW_m=0.1063, BW_t=0.1138):
+    def BMatrix(self, BW=np.array([0.1071,0.1063,0.1138])):
+        BW_e, BW_m, BW_t = BW[0], BW[1], BW[2]
+
         BW_h  = 1 - BW_e - BW_m -BW_t
 
         Bt_e  = self.Bt_e # 0.1772832 
         Bt_m  = self.Bt_m # 0.1731072       
         Bt_h  = 1 - Bt_e - Bt_m  
 
-        BVector = np.array([BW_e,BW_m, BW_t*Bt_e, BW_t*Bt_m, BW_t*Bt_h, BW_h ])
+        BVector = np.array([ BW_e,BW_m, BW_t*Bt_e, BW_t*Bt_m, BW_t*Bt_h, BW_h ])
         BMatrix = np.outer(BVector,BVector)
         return BMatrix
 
 
-    def PredictYield(self, BW_e=0.1071, BW_m=0.1063, BW_t=0.1138):
+    def PredictYield(self, BW=np.array([0.1071,0.1063,0.1138])):
         a       = self.a
-        B       = self.BMatrix(BW_e, BW_m, BW_t)
+        B       = self.BMatrix(BW)
         NMatrix = (a*B)*self.xs*self.lumin
         N       = np.sum(NMatrix)
         return N
 
-    def PredictYield_SmearOfSubN(self, BW_e=0.1071, BW_m=0.1063, BW_t=0.1138):
+    def PredictYield_SmearOfSubN(self, BW=np.array([0.1071,0.1063,0.1138])):
         a        = self.a
-        B        = self.BMatrix(BW_e, BW_m,BW_t)
+        B        = self.BMatrix(BW)
         NMatrix  = (a*B)*self.xs*self.lumin
         # smear the subN according sqrt
         #noise    = np.random.normal( np.zeros_like(NMatrix), np.sqrt(NMatrix)) 
@@ -60,24 +65,54 @@ class BFCalc3D_SingleSelectorYield_N:
 
     def ExpYield_SmearOfSubN(self):
         temp  = self.ExpYield()
-        smearWidth = self.bkg_unc + self.expyield**0.5
+        smearWidth = sqrt(self.bkg_unc*2 + self.expyield_unc**2)
         temp += np.random.normal(0, smearWidth)
         #temp += np.random.normal(0, self.expyield_unc)
         return temp
 
+    def QuadCoeff(self):
+        F = self.PredictYield
+
+        zzz = np.array([0,0,0])
+        pzz = np.array([1,0,0])
+        zpz = np.array([0,1,0])
+        zzp = np.array([0,0,1])
+        ppz = np.array([0,0,0])
+
+
+        j =  F(np.array([0,0,0]))
+
+        g = (F(np.array([1,0,0])) - F(np.array([-1,0,0])))/2
+        a =  F(np.array([1,0,0])) - g - j
+
+        h = (F(np.array([0,1,0])) - F(np.array([0,-1,0])))/2
+        b =  F(np.array([0,1,0])) - h - j
+
+        i = (F(np.array([0,0,1])) - F(np.array([0,0,-1])))/2
+        c =  F(np.array([0,0,1])) - i - j
+
+        d = F(np.array([1,1,0])) -a-b-g-h-j
+        e = F(np.array([1,0,1])) -a-c-g-i-j
+        f = F(np.array([0,1,1])) -b-c-h-i-j
+
+        coeff = np.array([a,b,c,d,e,f,g,h,i,j])
+        return  coeff # return 1x10 vector
+
+
+
     
 class BFCalc3D_ThreeSelectorRatios:
-    def __init__(self, a_e, a_m, a_t, a_h, xs, lumin, 
-                 Bt_e=0.1785,Bt_m=0.1736,
+    def __init__(self, a, xs, lumin, Bt_e=0.1785,Bt_m=0.1736,
                  expyield_e=None,bkg_e=0, bkg_unc_e=0,
                  expyield_m=None,bkg_m=0, bkg_unc_m=0,
                  expyield_t=None,bkg_t=0, bkg_unc_t=0,
                  expyield_h=None,bkg_h=0, bkg_unc_h=0
                  ):
-        self.a_e  = a_e
-        self.a_m  = a_m
-        self.a_t  = a_t
-        self.a_h  = a_h
+                
+        self.a_e  = a[0]
+        self.a_m  = a[1]
+        self.a_t  = a[2]
+        self.a_h  = a[3]
 
         self.xs = xs
         self.lumin = lumin
@@ -100,11 +135,9 @@ class BFCalc3D_ThreeSelectorRatios:
 
         N_norm = N_e+N_m+N_t+N_h
 
-        ExpX_e = N_e/N_norm
-        ExpX_m = N_m/N_norm
-        ExpX_t = N_t/N_norm
+        ExpX = np.array([N_e/N_norm, N_m/N_norm, N_t/N_norm])
 
-        return ExpX_e,ExpX_m,ExpX_t
+        return ExpX # return 1x3 vector
     
 
     def ExpXs_SmearOfSubN(self):
@@ -115,31 +148,42 @@ class BFCalc3D_ThreeSelectorRatios:
 
         N_norm = N_e+N_m+N_t+N_h
 
-        ExpX_e = N_e/N_norm
-        ExpX_m = N_m/N_norm
-        ExpX_t = N_t/N_norm
+        ExpX = np.array([N_e/N_norm, N_m/N_norm, N_t/N_norm])
 
-        return ExpX_e,ExpX_m,ExpX_t
+        return ExpX # return 1x3 vector
 
 
     # ################################################
     # 2. Predict Xs
     # ################################################
-    def PredictXs(self, BW_e=0.1071, BW_m=0.1063, BW_t=0.1138):
-        N_e = self.BFCalc3D_N_e.PredictYield(BW_e,BW_m,BW_t)
-        N_m = self.BFCalc3D_N_m.PredictYield(BW_e,BW_m,BW_t)
-        N_t = self.BFCalc3D_N_t.PredictYield(BW_e,BW_m,BW_t)
-        N_h = self.BFCalc3D_N_h.PredictYield(BW_e,BW_m,BW_t)
+    def PredictXs(self, BW=np.array([0.1071,0.1063,0.1138])):
+        N_e = self.BFCalc3D_N_e.PredictYield(BW)
+        N_m = self.BFCalc3D_N_m.PredictYield(BW)
+        N_t = self.BFCalc3D_N_t.PredictYield(BW)
+        N_h = self.BFCalc3D_N_h.PredictYield(BW)
 
         N_norm = N_e+N_m+N_t+N_h
 
-        PredictX_e = N_e/N_norm
-        PredictX_m = N_m/N_norm
-        PredictX_t = N_t/N_norm
+        PredictX = np.array([N_e/N_norm, N_m/N_norm, N_t/N_norm])
 
-        return PredictX_e,PredictX_m,PredictX_t
+        return PredictX # return 1x3 vector
 
-    def PredictXs_SmearOfSubN(self, BW_e=0.1071, BW_m=0.1063, BW_t=0.1138):
+    def PredictXsWithQuadCoeff(self, BW=np.array([0.1071,0.1063,0.1138])):
+        terms = np.array([BW[0]**2,BW[1]**2,BW[2]**2,BW[0]*BW[1],BW[0]*BW[2],BW[1]*BW[2],BW[0],BW[1],BW[2],1])
+
+        N_e = np.dot(self.BFCalc3D_N_e.quadCoeff,terms)
+        N_m = np.dot(self.BFCalc3D_N_m.quadCoeff,terms)
+        N_t = np.dot(self.BFCalc3D_N_t.quadCoeff,terms)
+        N_h = np.dot(self.BFCalc3D_N_h.quadCoeff,terms)
+        
+        N_norm = N_e+N_m+N_t+N_h
+
+        PredictX = np.array([N_e/N_norm, N_m/N_norm, N_t/N_norm])
+
+        return PredictX # return 1x3 vector
+
+
+    def PredictXs_SmearOfSubN(self, BW=np.array([0.1071,0.1063,0.1138])):
         N_e = self.BFCalc3D_N_e.PredictYield_SmearOfSubN(BW_e,BW_m,BW_t)
         N_m = self.BFCalc3D_N_m.PredictYield_SmearOfSubN(BW_e,BW_m,BW_t)
         N_t = self.BFCalc3D_N_t.PredictYield_SmearOfSubN(BW_e,BW_m,BW_t)
@@ -147,80 +191,110 @@ class BFCalc3D_ThreeSelectorRatios:
 
         N_norm = N_e+N_m+N_t+N_h
         
-        PredictX_e = N_e/N_norm
-        PredictX_m = N_m/N_norm
-        PredictX_t = N_t/N_norm
+        PredictX = np.array([N_e/N_norm, N_m/N_norm, N_t/N_norm])
 
-        return PredictX_e,PredictX_m,PredictX_t
+        return PredictX # return 1x3 vector
+    
+    # ################################################
+    # 3. solve analytical quadratic equations
+    # ################################################
+    # 3.1 given ObsX, Obtain quadratic equations
+    def ObtainAnalyticalQuadraticEquations(self,ObsX):
+        x,y,z = sym.symbols('x,y,z',real=True)
+        terms = [x*x,y*y,z*z,x*y,x*z,y*z,x,y,z,1]
+
+        ce = self.BFCalc3D_N_e.quadCoeff
+        cm = self.BFCalc3D_N_m.quadCoeff
+        ct = self.BFCalc3D_N_t.quadCoeff
+        ch = self.BFCalc3D_N_h.quadCoeff
+        cn = ce+cm+ct+ch
+
+        eqConst_e = ObsX[0]*cn - ce
+        eqConst_m = ObsX[1]*cn - cm
+        eqConst_t = ObsX[2]*cn - ct
+
+        eqs = []
+
+        for eqConst in [eqConst_e,eqConst_m,eqConst_t]:
+            eq = 0
+            for i,term in enumerate(terms):
+                eq += eqConst[i] * term
+            eqs.append(eq)
         
-    # ################################################
-    # 3. solve (BW_e, BW_m,BW_t)by {ObsX_e, ObsX_m, Obs_t}
-    # ################################################
-    # 3.1 set internal constent of experimental observables
-    def SetObsXs(self, ObsX_e, ObsX_m, ObsX_t):
-        self.ObsX_e = ObsX_e
-        self.ObsX_m = ObsX_m
-        self.ObsX_t = ObsX_t
+        self.analyticalQuadraticEquations = eqs
+        return eqs # return list of three equations
 
-    # 3.2 diff the difference between obsX-predictX
-    def Func_ObsXs_PredictXs(self, para):
-        # para is BW_e,BW_m,BW_t
-        PredictX_e, PredictX_m, PredictX_t = self.PredictXs(para[0],para[1],para[2])
+    # 3.2 given BW, evaluate the left sides of equations (left sides == 0 is the root)
+    def EvaluateLeftSidesOfAnalyticalQuadraticEquations(self,ParaBW):
+        leftSides = []
+        x,y,z = sym.symbols('x,y,z',real=True)
 
-        diffs    = np.zeros(3)
+        for eq in self.analyticalQuadraticEquations:
+            leftSide = eq.evalf(subs={x: ParaBW[0],y: ParaBW[1],z: ParaBW[2]})
+            leftSides.append(float(leftSide))
+        return np.array(leftSides) # return 1x3 vector
 
-        diffs[0] = self.ObsX_e - PredictX_e
-        diffs[1] = self.ObsX_m - PredictX_m
-        diffs[2] = self.ObsX_t - PredictX_t
-        
-        return diffs
-
-    # 3.3 sovle (BW_e BW_m,BW_t) on condition that obsX-predictX==0
-    def SovleBF(self, ObsX_e, ObsX_m, ObsX_t):
-        # set internal constents of ObsX
-        self.SetObsXs(ObsX_e, ObsX_m, ObsX_t)
-        # have an inital 
-        bf0 = np.array([0.1071,0.1063, 0.1138])
-        # solve bf (BW_e,BW_m,BW_t) for given constents {ObsX_e, ObsX_m, Obs_t}
-        solution  = root(self.Func_ObsXs_PredictXs, bf0).x
-        # return BW_e, BW_m,BW_t) 
-        BW_e,BW_m,BW_t = solution[0], solution[1], solution[2]
-        return BW_e, BW_m,BW_t
+    # 3.3 given ObsX, solve BW from left sides == 0 
+    def SolveAnalyticalQuadraticEquations(self,ObsX):
+        eqs = self.ObtainAnalyticalQuadraticEquations(ObsX)
+        BW0 = np.array([0.1071,0.1063, 0.1138])
+        solution  = root(self.EvaluateLeftSidesOfAnalyticalQuadraticEquations, BW0).x
+        return solution
 
     # ################################################
-    # 4. To draw graphical plane
-    # get BW_t from given {ObsX} and BW_e, BW_m
+    # 4. solve BW from PredictX=ObsX 
     # ################################################
     # 4.1 set internal constent of experimental observables
-    def SetConsts(self, BW_e, BW_m, ObsX, sel):
-        self.temp_BW_e = BW_e
-        self.temp_BW_m = BW_m
-        self.temp_ObsX = ObsX
-        self.sel = sel
+    def SetObsXs(self, ObsX):
+        self.ObsX
 
     # 4.2 diff the difference between obsX-predictX
-    def Func_ObsX_PredictX(self, BW_t):
+    def EvaluateDifferenceBetweenObsXAndPredictX(self, ParaBW):
+        PredictX = self.PredictXs(ParaBW)
+        diffs = PredictX-self.ObsX
+        return diffs
 
-        PredictX_e, PredictX_m, PredictX_t = self.PredictXs(self.temp_BW_e, self.temp_BW_m, BW_t ) 
-        
-        if self.sel == 'e':
-            PredictX = PredictX_e
-        if self.sel == 'm':
-            PredictX = PredictX_m          
-        if self.sel == 't':
-            PredictX = PredictX_t
-        
-        return self.temp_ObsX - PredictX
+    # 4.3 sovle (BW_e BW_m,BW_t) on condition that obsX-predictX==0
+    def SovleObsXEqualsPredictX(self, ObsX):
+        self.SetObsXs(ObsX) 
+        BW0 = np.array([0.1071,0.1063, 0.1138])
+        solution  = root(self.EvaluateDifferenceBetweenObsXAndPredictX, BW0).x
+        return solution
 
-    # 4.3 BW_t from given ObsX and BW_e, BW_m
-    def Sovle_BWt(self, BW_e, BW_m, ObsX, sel):
-        # set internal constents of ObsX
-        self.SetConsts( BW_e, BW_m, ObsX, sel)
-        # have an inital 
-        BW_t0 = 0.1138
-        # solve l
-        BW_t  = root(self.Func_ObsX_PredictX, BW_t0).x
-        return BW_t
+    # ################################################
+    # 5. To draw hyperbolic plane
+    # get BW_t from given {ObsX} and BW_e, BW_m
+    # ################################################
+    # 5.1 set internal constent of experimental observables
+    # def SetConsts(self, BW_e, BW_m, ObsX, sel):
+    #     self.temp_BW_e = BW_e
+    #     self.temp_BW_m = BW_m
+    #     self.temp_ObsX = ObsX
+    #     self.sel = sel
+
+    # # 4.2 diff the difference between obsX-predictX
+    # def Func_ObsX_PredictX(self, BW_t):
+
+    #     PredictX_e, PredictX_m, PredictX_t = self.PredictXs(self.temp_BW_e, self.temp_BW_m, BW_t ) 
+        
+    #     if self.sel == 'e':
+    #         PredictX = PredictX_e
+    #     if self.sel == 'm':
+    #         PredictX = PredictX_m          
+    #     if self.sel == 't':
+    #         PredictX = PredictX_t
+        
+    #     return self.temp_ObsX - PredictX
+
+    # # 4.3 BW_t from given ObsX and BW_e, BW_m
+    # def Sovle_BWt(self, BW_e, BW_m, ObsX, sel):
+    #     # set internal constents of ObsX
+    #     self.SetConsts( BW_e, BW_m, ObsX, sel)
+    #     # have an inital 
+    #     BW_t0 = 0.1138
+    #     # solve l
+    #     BW_t  = root(self.Func_ObsX_PredictX, BW_t0).x
+    #     return BW_t
 
 
 class BFCalc3D_ErrorPropagater:
@@ -454,6 +528,25 @@ class BFCalc3D_Toolbox:
         dfacc = pd.DataFrame.from_records(dfacc,columns=['sel','tag','acc'])
         return dfacc
 
+    def IO_GetAcc(self,trigger,usetag):
+        df_acc = self.IO_LoadAccTableIntoDf()
+        if trigger == "mu":
+            a_e   = df_acc.loc[(df_acc.sel=="emu")   & (df_acc.tag==usetag),'acc'].values[0]
+            a_m   = df_acc.loc[(df_acc.sel=="mumu")  & (df_acc.tag==usetag),'acc'].values[0]
+            a_t   = df_acc.loc[(df_acc.sel=="mutau") & (df_acc.tag==usetag),'acc'].values[0]
+            a_h   = df_acc.loc[(df_acc.sel=="mu4j")  & (df_acc.tag==usetag),'acc'].values[0]
+        if trigger == "e":
+            a_e   = df_acc.loc[(df_acc.sel=="ee")   & (df_acc.tag==usetag),'acc'].values[0]
+            a_m   = df_acc.loc[(df_acc.sel=="emu2")  & (df_acc.tag==usetag),'acc'].values[0]
+            a_t   = df_acc.loc[(df_acc.sel=="etau") & (df_acc.tag==usetag),'acc'].values[0]
+            a_h   = df_acc.loc[(df_acc.sel=="e4j")  & (df_acc.tag==usetag),'acc'].values[0]
+        
+        a = np.array([a_e,a_m,a_t,a_h])
+        
+        self.Plot_Imshow4Matrix(a,trigger)
+        return a
+
+
 
     def Plot_toy(self, bf1_list,bf2_list,bf3_list):
 
@@ -518,7 +611,7 @@ class BFCalc3D_Toolbox:
 
     
     def Plot_ImshowMatrix(self, mtx):
-        plt.figure(figsize=(3,3))
+        plt.figure(facecolor="w",figsize=(3,3))
         ticks = [r'$e$',r'$\mu$',r'$\tau_e$',r'$\tau_\mu$',r'$\tau_h$',r'$h$']
         plt.imshow(mtx,interpolation='None',cmap='viridis')
         for i in range(0,6):
@@ -529,10 +622,13 @@ class BFCalc3D_Toolbox:
         plt.xticks(range(0,6),ticks)
         plt.yticks(range(0,6),ticks)
 
-    def Plot_Imshow4Matrix(self, a_e,a_m,a_t,a_h,plotTitles="muTrigger"):
-        plt.figure(figsize=(12,3))
+    def Plot_Imshow4Matrix(self, a, trigger):
+        a_e,a_m,a_t,a_h = a[0],a[1],a[2],a[3]
 
-        if plotTitles is "muTrigger":
+        plt.figure(facecolor="w",figsize=(12,3))
+
+
+        if trigger is "mu":
             titles=[r"$A_{\mu e} [\%]$", 
                     r"$A_{\mu \mu} [\%]$",
                     r"$A_{\mu \tau_h} [\%]$",

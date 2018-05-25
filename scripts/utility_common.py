@@ -38,16 +38,17 @@ def GetPlotDir(selection, nbjetcut):
 def GetSelectionCut(slt):
     zveto  = " & (dilepton_mass<80 | dilepton_mass>102) "
     lmveto = " & (dilepton_mass>12) "
-    ssveto = " & (lepton1_q != lepton2_q) "
+    opveto = " & (lepton1_q != lepton2_q) "
+    ssveto = " & (lepton1_q == lepton2_q) "
     sltcut = {
-            "mumu"  : " (lepton1_pt > 25) & (lepton1_reliso < 0.15) & (lepton2_pt > 10) & (lepton1_reliso < 0.15) " + lmveto + ssveto + zveto,
-            "mutau" : " (lepton1_pt > 30) & (lepton1_reliso < 0.15) " + lmveto +  ssveto,
+            "mumu"  : " (lepton1_pt > 25) & (lepton1_reliso < 0.15) & (lepton2_pt > 10) & (lepton1_reliso < 0.15) " + lmveto + opveto + zveto,
+            "mutau" : " (lepton1_pt > 30) & (lepton1_reliso < 0.15) " + lmveto +  opveto,
             "mu4j"  : " (lepton1_pt > 30) & (lepton1_reliso < 0.15) ",
-            "emu"   : " (lepton1_pt > 25) " + lmveto +  ssveto, 
-            "emu2"  : " (lepton2_pt > 30) & (lepton1_pt < 24)" + lmveto +  ssveto, 
-            "ee"    : " (lepton1_pt > 30) " + lmveto + ssveto + zveto,
-            "etau"  : " (lepton1_pt > 30) " + lmveto + ssveto,
-            "e4j"   : "(lepton1_pt > 30) " 
+            "emu"   : " (lepton1_pt > 25) & ((triggerLepton == 1) | (triggerLepton == 3 & lepton1_pt>lepton2_pt)) & (lepton2_pt > 15)" + lmveto +  opveto, 
+            "emu2"  : " ((triggerLepton == 2) | (triggerLepton == 3 & lepton1_pt<lepton2_pt)) & (lepton2_pt > 30)"  + lmveto +  opveto, 
+            "ee"    : " (lepton1_pt > 30) " + lmveto + opveto + zveto,
+            "etau"  : " (lepton1_pt > 30) " + lmveto + opveto,
+            "e4j"   : " (lepton1_pt > 30) " 
             }
     return sltcut[slt]
 

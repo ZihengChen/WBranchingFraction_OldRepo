@@ -42,6 +42,12 @@ XS_table ={ 'ww'              : 12178,
            't_tw'             :  35850,
            'tbar_tw'          :  35850,
            'ttbar_inclusive'  :  832000,
+           
+           'TTZToLLNuNu'      : 252.9,
+           'TTZToQQ'          : 529.7,
+           'TTWJetsToLNu'     : 204.3,
+           'TTWJetsToQQ'      : 406.2,
+           'ttHJetTobb'       : 295.0,
 
            'qcd_ht100to200'   : 27990000000,
            'qcd_ht200to300'   : 1712000000,
@@ -77,7 +83,7 @@ def fill_lepton_vars(tree, name, SF):
     out_dict['nJets']        =  tree.nJets
     out_dict['nBJets']       =  tree.nBJets
     out_dict['nPV']          =  tree.nPV
-    out_dict['triggerLetpon'] = tree.triggerLetponStatus
+    out_dict['triggerLepton'] = tree.triggerLeptonStatus
 
     weight = SF * tree.eventWeight
    #if name in ['zjets_m-50','zjets_m-10to50']:
@@ -161,7 +167,7 @@ def fill_lepton_vars(tree, name, SF):
         out_dict['jet1_pt']      = jet1.Pt()
         out_dict['jet1_eta']     = jet1.Eta()
         
-        
+
         out_dict['jet2_pt']      = jet2.Pt()
         out_dict['jet2_eta']     = jet2.Eta()
 
@@ -261,7 +267,7 @@ def pickle_ntuple(ntuple_data):
     input_file  = ntuple_data[2]
     output_path = ntuple_data[3]
     if name in datalist:
-        output_path +="data2016/" # "data2016_inverseISO/"#
+        output_path += "data2016/" #"data2016_inverseISO/"#
     elif name in mcdibosonlist:
         output_path +="mcdiboson/"
     elif name in mcdylist:
@@ -269,7 +275,9 @@ def pickle_ntuple(ntuple_data):
     elif name in mctlist:
         output_path +="mct/"
     elif name in mcttlist:
-        output_path +="mctt/"    
+        output_path +="mctt/" 
+    elif name in mcttbosonlist:
+        output_path +="mcttboson/"
     make_directory(output_path, clear=False)
     
     # get the tree, convert to dataframe, and save df to pickle
@@ -287,9 +295,9 @@ def pickle_ntuple(ntuple_data):
     
 ###########################################    
 # My Main function
-input_root_file_name  = "/home/zchen/Documents/Analysis/workplace/data/root/2016MC.root" #
+input_root_file_name  = "/mnt/data/zchen/Analysis/root/JECV4_fixTriggerEff.root" #
 input_root_file = TFile(input_root_file_name)
-output_directory = "/home/zchen/Documents/Analysis/workplace/data/pickle/{}/".format(selection)
+output_directory = "/mnt/data/zchen/Analysis/pickle/{}/".format(selection)
 
 ## 1. define the datalist
 if selection in ["mumu","mutau","mu4j"]:
@@ -313,6 +321,7 @@ else:
 ## 2. define the MC list
 mcqcdlist = ['qcd_ht100to200','qcd_ht200to300','qcd_ht300to500','qcd_ht500to700',
              'qcd_ht700to1000','qcd_ht1000to1500','qcd_ht1500to2000','qcd_ht2000']
+mcttbosonlist = ['TTZToLLNuNu']
 mcdibosonlist = ['ww','wz_2l2q','wz_3lnu','zz_2l2nu','zz_2l2q','zz_4l' ]
 mcdylist      = ['zjets_m-10to50','zjets_m-50',
                  'z1jets_m-10to50','z2jets_m-10to50','z3jets_m-10to50','z4jets_m-10to50',
@@ -320,14 +329,14 @@ mcdylist      = ['zjets_m-10to50','zjets_m-50',
                  'w1jets','w2jets','w3jets','w4jets']
 mctlist       = ['t_tw','tbar_tw']
 mcttlist      = ['ttbar_inclusive']
-mclist =  mcdibosonlist + mcdylist + mctlist + mcttlist
+mclist =   mcttbosonlist + mcdibosonlist + mcdylist + mctlist + mcttlist
 
 ## 3. Calculate SF for each element in datalist and mclist
 SF_table = {}
 SF_table = defaultdict(lambda: 1.0, SF_table)
 for mc in mclist:
     h = input_root_file.Get("TotalEvents_"+mc)
-    nGenTotal = h.GetBinContent(1)
+    nGenTotal = h.GetBinContent(11)
     crossection = XS_table[mc]
     SF_table[mc] = crossection*lumin/nGenTotal
 for data in datalist:

@@ -31,3 +31,4 @@ index,var,lower,upper,step,xlabel
 33,met,0,200,5,met [GeV]
 34,lepton1_mt,0,200,5, lepton1_mt [GeV]
 35,lepton2_mt,0,200,5, lepton2_mt [GeV]
+36,triggerLepton,0,8,1,triggerLepton
