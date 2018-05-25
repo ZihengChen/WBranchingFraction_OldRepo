@@ -241,6 +241,18 @@ class BFCalc3D_ThreeSelectorRatios:
         solution  = root(self.EvaluateLeftSidesOfAnalyticalQuadraticEquations, BW0).x
         return solution
 
+    # 3.4 give ObsX and BWe and BWm, output BWt
+    def GetPlanesFromAnalyticalQuadraticEquations(self,ObsX):
+        eqs = self.ObtainAnalyticalQuadraticEquations(ObsX)
+        x,y,z = sym.symbols('x,y,z',real=True)
+        planes = []
+        for i in range(3):
+            eq = eqs[i]
+            plane = sym.solve(eq,[z])[1]
+            planes.append(plane)
+        return planes
+
+
     # ################################################
     # 4. solve BW from PredictX=ObsX 
     # ################################################
@@ -265,6 +277,9 @@ class BFCalc3D_ThreeSelectorRatios:
     # 5. To draw hyperbolic plane
     # get BW_t from given {ObsX} and BW_e, BW_m
     # ################################################
+    
+
+
     # 5.1 set internal constent of experimental observables
     # def SetConsts(self, BW_e, BW_m, ObsX, sel):
     #     self.temp_BW_e = BW_e
